@@ -6,6 +6,8 @@ name: cifcomb pytest
 on:
   push:
     branches: [ "master", "devel" ]
+  
+  workflow_dispatch:
 
 jobs:
   build:
