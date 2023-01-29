@@ -14,18 +14,18 @@ README
 
 Synthesized compositions search from cif database.
 
-Installation
+Installation via PyPI
 ----------------------------------------------------------
 
-cifcomb can be obtained from PyPI
+[In progress] cifcomb can be obtained from PyPI
 
 .. code-block:: console
 
     pip install cifcomb
 
 
-Development
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Installation from source
+----------------------------------------------------------
 
 If you prefer to install from source,
 instead follow the procedures below.
@@ -48,17 +48,30 @@ You should prepare a CIF data file from your cif files
 
     cifcomb -m cif_dir1 cif_dir2 ....
 
+The generation process is parallelized using `joblib` library. Nevertheless, it takes a very long time if the specified CIF database is huge (e.g., It takes ~ 2 days for the entire COD/Crystallography Open Database [http://www.crystallography.net/cod/] CIF files with 256 cores of Intel(R) Xeon Phi(TM) CPU 7210 @ 1.30GHz).
+
+If one wants to use a prepared CIF database, plz. contact to the developer Kosuke Nakano [kousuke_1123@icloud.com].
+
 Search a CIF file from the generated database
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You should search a CIF that can be sum of the input compositions
-from the generated database.
+You should search a CIF that can be sum of the input compositions from the generated database.
 
 .. code-block::
 
     %cifcomb -s CaO TiO2
     1*Ca1 Ti1 O3 = 1*Ca1O1 + 1*Ti1O2, cifid=1000022, SG=Pnma
     ...
+
+Get a CIF file from the generated database
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You should copy a CIF with an ID in the generated database.
+
+.. code-block::
+
+    cifcomb -g 1000022
+    # copying 1000022.cif to the current directory.
 
 Decompose an input composition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -70,15 +83,6 @@ You can decompose a target composition with the input compositions
     %cifcomb -s CaO TiO2 -t CaTiO3
     1*CaTiO3 = 1*CaO + 1*TiO2
 
-Get a CIF file from the generated database
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You should copy a CIF with an ID in the generated database.
-
-.. code-block::
-
-    cifcomb -g 1000022
-    # copying 1000022.cif to the current directory.
 
 Additional information
 ^^^^^^^^^^^^^^^^^^^^^^
