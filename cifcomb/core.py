@@ -32,7 +32,7 @@ from pymatgen.util.coord import in_coord_list_pbc
 from pymatgen.core.periodic_table import get_el_sp
 from pymatgen.util.string import formula_double_format
 
-import const
+import cifcomb.const as const
 
 warnings.simplefilter("ignore")
 os.environ["PYTHONWARNINGS"] = "ignore::UserWarning"
@@ -66,28 +66,36 @@ def tqdm_joblib(
 
 def make_database(cif_dir_list=[], cif_dir_link=True):
     os.makedirs(const.DATA_DIR, exist_ok=True)
+    os.makedirs(const.CIF_DIR, exist_ok=True)
     if cif_dir_link:
         for cif_dir_path in cif_dir_list:
-            if os.path.isfile(
-                os.path.join(const.CIF_DIR, os.path.basename(cif_dir_path))
-            ):
-                os.remove(
-                    os.path.join(const.CIF_DIR, os.path.basename(cif_dir_path))
-                )
-            if os.path.isdir(
-                os.path.join(const.CIF_DIR, os.path.basename(cif_dir_path))
-            ):
-                shutil.rmtree(
-                    os.path.join(const.CIF_DIR, os.path.basename(cif_dir_path))
-                )
-            os.symlink(
-                cif_dir_path,
-                os.path.join(const.CIF_DIR, os.path.basename(cif_dir_path)),
+            cif_path = os.path.join(
+                const.CIF_DIR, os.path.basename(cif_dir_path.rstrip("/"))
             )
+            if os.path.isfile(cif_path):
+                if os.path.islink(cif_path):
+                    os.unlink(cif_path)
+                else:
+                    os.remove(cif_path)
+            if os.path.isdir(cif_path):
+                if os.path.islink(cif_path):
+                    os.unlink(cif_path)
+                else:
+                    shutil.rmtree(cif_path)
+            os.symlink(
+                os.path.abspath(cif_dir_path),
+                os.path.join(
+                    const.CIF_DIR, os.path.basename(cif_dir_path.rstrip("/"))
+                ),
+                target_is_directory=True,
+            )
+    else:
         for cif_dir_path in cif_dir_list:
             shutil.copytree(
                 cif_dir_path,
-                os.path.join(const.CIF_DIR, os.path.basename(cif_dir_path)),
+                os.path.join(
+                    const.CIF_DIR, os.path.basename(cif_dir_path.rstrip("/"))
+                ),
                 dirs_exist_ok=True,
             )
     cif_list = glob(os.path.join(const.CIF_DIR, "**", "*.cif"), recursive=True)
@@ -106,7 +114,9 @@ def make_database(cif_dir_list=[], cif_dir_link=True):
     print(f"used num_threads = {num_thread}")
 
     with tqdm_joblib(
-        len(cif_list), miniters=int(len(cif_list) / 100), maxinterval=1.0e10
+        len(cif_list),
+        miniters=int(len(cif_list) / const.JOBLIB_MINITERS_DENOM),
+        maxinterval=const.JOBLIB_MAX_INTERVALS,
     ):
         results = joblib.Parallel(n_jobs=num_thread)(
             [joblib.delayed(return_chemical_system)(cif) for cif in cif_list]
@@ -168,18 +178,88 @@ def getcif(cifid_list=[]):
             print("{cifid}.cif is not found")
 
 
+def decompose_composition(
+    target_composition, input_composition_list=[], max_multiplication=10
+):
+    candidate_el_amt_dict = (
+        target_composition.element_composition.get_el_amt_dict()
+    )
+    unique_element_list = candidate_el_amt_dict.keys()
+
+    """
+    n*TiO2 + m*BaO = 42Ba + 32Ti + 68O
+    ->
+    0n + 1m = 42 (Ba) * k
+    1n + 0m = 32 (Ti) * k
+    2n + 1m = 68 (O) * k
+    where k is an interger
+    """
+
+    for iii in range(max_multiplication):
+        multi = iii + 1
+        A = np.zeros(
+            shape=(len(unique_element_list), len(input_composition_list))
+        )
+        B = np.zeros(shape=(len(unique_element_list), 1))
+
+        for n_element, element in enumerate(unique_element_list):
+            B[n_element, 0] = int(candidate_el_amt_dict[element]) * multi
+
+            for n_composition, composition in enumerate(
+                input_composition_list
+            ):
+                input_el_amt_dict = (
+                    composition.element_composition.get_el_amt_dict()
+                )
+
+                if element in input_el_amt_dict.keys():
+                    A[n_element, n_composition] = float(
+                        input_el_amt_dict[element]
+                    )
+                else:
+                    A[n_element, n_composition] = float(0)
+
+        # check if the obtained solution is exact or just the least-squared one.
+        X = np.dot(np.linalg.pinv(A), B)  # pseudo-inverse matrix
+        B_ = np.dot(A, X)
+        diff_B = B - B_
+        check_interger = [np.abs(b) < INT_THRESHOLD for b in diff_B.flatten()]
+        if not all(check_interger):
+            # print("Not an exact solution")
+            continue
+
+        input_nominal_ratio_list = X.flatten()
+        target_nominal_ratio = multi
+
+        # check if all the nominal composition is integer
+        check_interger = [
+            np.abs(ratio - round(ratio)) < INT_THRESHOLD and round(ratio) > 0
+            for ratio in input_nominal_ratio_list
+        ]
+        if all(check_interger):
+            return target_nominal_ratio, input_nominal_ratio_list
+
+    # if no solution is found. return np.nan.
+    target_nominal_ratio = np.nan
+    input_nominal_ratio_list = [np.nan for _ in input_composition_list]
+
+    return target_nominal_ratio, input_nominal_ratio_list
+
+
 def search_combination(compounds_list=[]):
     # e.g., compounds_list = ["CaO", "SiO2", "O2"]
-    compositions_list = [Composition(compound) for compound in compounds_list]
+    input_composition_list = [
+        Composition(compound) for compound in compounds_list
+    ]
     sum_composition = Composition("".join(compounds_list))
     element_key = sum_composition.chemical_system
 
-    with open(os.path.join(const.DATA_DIR, "cod_summary.pkl"), "rb") as f:
+    with open(os.path.join(const.DATA_DIR, "cif_summary.pkl"), "rb") as f:
         record_dict_pickled = pickle.load(f)
 
     try:
         data_pd = record_dict_pickled[element_key]
-        codid_list = list(data_pd["codid"])
+        cifid_list = list(data_pd["cifid"])
         space_group_list = list(data_pd["space_group"])
         sub_chem_formula_list = list(data_pd["sub_chem_formula"])
 
@@ -187,93 +267,40 @@ def search_combination(compounds_list=[]):
         return_candidate_composition_list = []
         return_input_nominal_ratio_list = []
         return_input_compositions_list = []
-        return_codid_list = []
+        return_cifid_list = []
         return_space_group_list = []
 
-        int_trial = 5
-        for codid, space_group, sub_chem_formula in zip(
-            codid_list, space_group_list, sub_chem_formula_list
+        for cifid, space_group, sub_chem_formula in zip(
+            cifid_list, space_group_list, sub_chem_formula_list
         ):
             candidate_composition = Composition(sub_chem_formula)
-            candidate_el_amt_dict = (
-                candidate_composition.element_composition.get_el_amt_dict()
+
+            (
+                target_nominal_ratio,
+                input_nominal_ratio_list,
+            ) = decompose_composition(
+                target_composition=candidate_composition,
+                input_composition_list=input_composition_list,
             )
-            unique_element_list = candidate_el_amt_dict.keys()
 
-            """
-            n*TiO2 + m*BaO = 42Ba + 32Ti + 68O
-            ->
-            0n + 1m = 42 (Ba) * k
-            1n + 0m = 32 (Ti) * k
-            2n + 1m = 68 (O) * k
-            where k is an interger
-            """
-
-            for iii in range(int_trial):
-                multi = iii + 1
-                A = np.zeros(
-                    shape=(len(unique_element_list), len(compositions_list))
+            if target_nominal_ratio is not np.nan:
+                return_candidate_nominal_ratio_list.append(
+                    target_nominal_ratio
                 )
-                B = np.zeros(shape=(len(unique_element_list), 1))
-
-                for n_element, element in enumerate(unique_element_list):
-                    B[n_element, 0] = (
-                        int(candidate_el_amt_dict[element]) * multi
-                    )
-
-                    for n_composition, composition in enumerate(
-                        compositions_list
-                    ):
-                        input_el_amt_dict = (
-                            composition.element_composition.get_el_amt_dict()
-                        )
-
-                        if element in input_el_amt_dict.keys():
-                            A[n_element, n_composition] = float(
-                                input_el_amt_dict[element]
-                            )
-                        else:
-                            A[n_element, n_composition] = float(0)
-
-                # check if the obtained solution is exact or just the least-squared one.
-                X = np.dot(np.linalg.pinv(A), B)  # pseudo-inverse matrix
-                B_ = np.dot(A, X)
-                diff_B = B - B_
-                check_interger = [
-                    np.abs(b) < INT_THRESHOLD for b in diff_B.flatten()
-                ]
-                if not all(check_interger):
-                    # print("Not an exact solution")
-                    continue
-
-                input_nominal_ratio = X.flatten()
-                candidate_nominal_ratio = multi
-
-                # check if all the nominal composition is integer
-                check_interger = [
-                    np.abs(ratio - round(ratio)) < INT_THRESHOLD
-                    and round(ratio) > 0
-                    for ratio in input_nominal_ratio
-                ]
-                if all(check_interger):
-                    return_candidate_nominal_ratio_list.append(
-                        candidate_nominal_ratio
-                    )
-                    return_candidate_composition_list.append(
-                        candidate_composition
-                    )
-                    return_input_nominal_ratio_list.append(input_nominal_ratio)
-                    return_input_compositions_list.append(compositions_list)
-                    return_codid_list.append(codid)
-                    return_space_group_list.append(space_group)
-                    break  # exit the int_trial loop
+                return_candidate_composition_list.append(candidate_composition)
+                return_input_nominal_ratio_list.append(
+                    input_nominal_ratio_list
+                )
+                return_input_compositions_list.append(input_composition_list)
+                return_cifid_list.append(cifid)
+                return_space_group_list.append(space_group)
 
     except KeyError:
         return_candidate_nominal_ratio_list = []
         return_candidate_composition_list = []
         return_input_nominal_ratio_list = []
         return_input_compositions_list = []
-        return_codid_list = []
+        return_cifid_list = []
         return_space_group_list = []
 
     finally:
@@ -282,7 +309,7 @@ def search_combination(compounds_list=[]):
             return_candidate_composition_list,
             return_input_nominal_ratio_list,
             return_input_compositions_list,
-            return_codid_list,
+            return_cifid_list,
             return_space_group_list,
         )
 
@@ -291,8 +318,8 @@ def joblib_search_combination(combination_list=[], num_thread=-1):
 
     with tqdm_joblib(
         len(combination_list),
-        miniters=int(len(combination_list) / 100),
-        maxinterval=1.0e10,
+        miniters=int(len(combination_list) / const.JOBLIB_MINITERS_DENOM),
+        maxinterval=const.JOBLIB_MAX_INTERVALS,
         disable=const.DISABLE_PROGRESSBAR,
     ):
         results = joblib.Parallel(n_jobs=num_thread)(
@@ -633,7 +660,10 @@ def return_chemical_system(cif):
             cif_sg_number = cif_dict["_space_group_IT_number"]
         else:
             cif_sg_number = cif_dict["_symmetry_Int_Tables_number"]
-        assert sga.get_space_group_number() == int(cif_sg_number)
+        if sga.get_space_group_number() != int(cif_sg_number):
+            raise ValueError(
+                "the SG in the cif file is not consistent with the one detected by spglib."
+            )
 
         lattice_type = sga.get_lattice_type()
         point_group = sga.get_point_group_symbol()
@@ -658,12 +688,14 @@ def return_chemical_system(cif):
 
         return element_key, record
 
-    except ValueError as e:
+    except (ValueError, TypeError, KeyError) as e:
         e
         # print(cifid)
         # print(e)
         return ("NA", "NA")
 
+    """
     except Exception as e:
         print(f"cifid={cifid}, {e}")
         return ("NA", "NA")
+    """

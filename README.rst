@@ -40,7 +40,7 @@ Quick use
 ---------
 
 Preparation of a CIF data file (from CIF files)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You should prepare a CIF data file from your cif files
 
@@ -48,24 +48,37 @@ You should prepare a CIF data file from your cif files
 
     cifcomb -m cif_dir1 cif_dir2 ....
 
-Search a CIF file
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Search a CIF file from the generated database
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You should search a CIF in the generated database.
+You should search a CIF that can be sum of the input compositions
+from the generated database.
 
 .. code-block::
 
-    cifcomb -c MgO TiO2 ....
+    %cifcomb -s CaO TiO2
+    1*Ca1 Ti1 O3 = 1*Ca1O1 + 1*Ti1O2, cifid=1000022, SG=Pnma
+    ...
 
-Get a CIF file
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Decompose an input composition
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can decompose a target composition with the input compositions
+
+.. code-block::
+
+    %cifcomb -s CaO TiO2 -t CaTiO3
+    1*CaTiO3 = 1*CaO + 1*TiO2
+
+Get a CIF file from the generated database
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You should copy a CIF with an ID in the generated database.
 
 .. code-block::
 
-    cifcomb -g 102345
-
+    cifcomb -g 1000022
+    # copying 1000022.cif to the current directory.
 
 Additional information
 ^^^^^^^^^^^^^^^^^^^^^^

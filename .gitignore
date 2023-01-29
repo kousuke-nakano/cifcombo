@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# setuptool
+_version.py
+
+# Mac
+.DS_Store
+
+# data
+data/
+cifs/
