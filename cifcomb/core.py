@@ -233,10 +233,15 @@ def decompose_composition(
 
         # check if all the nominal composition is integer
         check_interger = [
-            np.abs(ratio - round(ratio)) < INT_THRESHOLD and round(ratio) > 0
+            np.abs(ratio - round(ratio)) < const.INT_THRESHOLD
+            and round(ratio) > 0
             for ratio in input_nominal_ratio_list
         ]
         if all(check_interger):
+            target_nominal_ratio = round(target_nominal_ratio)
+            input_nominal_ratio_list = [
+                round(k) for k in input_nominal_ratio_list
+            ]
             return target_nominal_ratio, input_nominal_ratio_list
 
     # if no solution is found. return np.nan.
