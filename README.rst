@@ -12,10 +12,10 @@ README
 .. |workflows| image:: https://github.com/kousuke-nakano/cifcomb/actions/workflows/cifcomb-pytest.yml/badge.svg
 .. |PyPI_version| image:: https://badge.fury.io/py/cifcomb.svg
 
-Synthesized compounds search from cif database (cifcomb).
+Synthesized compositions search from cif database.
 
 Installation
-------------
+----------------------------------------------------------
 
 cifcomb can be obtained from PyPI
 
@@ -25,7 +25,7 @@ cifcomb can be obtained from PyPI
 
 
 Development
-^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you prefer to install from source,
 instead follow the procedures below.
@@ -37,7 +37,7 @@ instead follow the procedures below.
     pip install -e .
 
 Quick use
----------
+----------------------------------------------------------
 
 Preparation of a CIF data file (from CIF files)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -93,7 +93,7 @@ or you can refer to the documentation.
 
 
 How to release
---------------
+----------------------------------------------------------
 
 Work on the devel or on a new branch
 
