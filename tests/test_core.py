@@ -5,7 +5,7 @@
 from helper import chdir
 from pymatgen.core import Composition
 
-from cifcomb.core import decompose_composition
+from cifcombo.core import decompose_composition
 
 
 def test_decompose_composition():

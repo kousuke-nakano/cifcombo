@@ -9,7 +9,7 @@ import warnings
 
 from pymatgen.core import Composition
 
-import cifcomb.core as core
+import cifcombo.core as core
 
 warnings.simplefilter("ignore")
 os.environ["PYTHONWARNINGS"] = "ignore::UserWarning"
