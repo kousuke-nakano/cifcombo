@@ -4,4 +4,4 @@ build-backend = "setuptools.build_meta"
 
 # pyproject.toml
 [tool.setuptools_scm]
-write_to = "cifcomb/_version.py"
+write_to = "cifcombo/_version.py"

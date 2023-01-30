@@ -32,7 +32,7 @@ from pymatgen.util.coord import in_coord_list_pbc
 from pymatgen.core.periodic_table import get_el_sp
 from pymatgen.util.string import formula_double_format
 
-import cifcomb.const as const
+import cifcombo.const as const
 
 warnings.simplefilter("ignore")
 os.environ["PYTHONWARNINGS"] = "ignore::UserWarning"

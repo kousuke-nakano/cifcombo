@@ -3,25 +3,25 @@ README
 
 |license| |DL| |release| |PYPI_version| |Python_version| |workflows| |fork| |stars|
 
-.. |license| image:: https://img.shields.io/github/license/kousuke-nakano/cifcomb
-.. |release| image:: https://img.shields.io/github/release/kousuke-nakano/cifcomb/all.svg
-.. |DL| image:: https://img.shields.io/pypi/dm/cifcomb
-.. |Python_version| image:: https://img.shields.io/pypi/pyversions/cifcomb
-.. |fork| image:: https://img.shields.io/github/forks/kousuke-nakano/cifcomb?style=social
-.. |stars| image:: https://img.shields.io/github/stars/kousuke-nakano/cifcomb?style=social
-.. |workflows| image:: https://github.com/kousuke-nakano/cifcomb/actions/workflows/cifcomb-pytest.yml/badge.svg
-.. |PyPI_version| image:: https://badge.fury.io/py/cifcomb.svg
+.. |license| image:: https://img.shields.io/github/license/kousuke-nakano/cifcombo
+.. |release| image:: https://img.shields.io/github/release/kousuke-nakano/cifcombo/all.svg
+.. |DL| image:: https://img.shields.io/pypi/dm/cifcombo
+.. |Python_version| image:: https://img.shields.io/pypi/pyversions/cifcombo
+.. |fork| image:: https://img.shields.io/github/forks/kousuke-nakano/cifcombo?style=social
+.. |stars| image:: https://img.shields.io/github/stars/kousuke-nakano/cifcombo?style=social
+.. |workflows| image:: https://github.com/kousuke-nakano/cifcomb/actions/workflows/cifcombo-pytest.yml/badge.svg
+.. |PyPI_version| image:: https://badge.fury.io/py/cifcombo.svg
 
 Synthesized compositions search from cif database.
 
 Installation via PyPI
 ----------------------------------------------------------
 
-[In progress] cifcomb can be obtained from PyPI
+[In progress] cifcombo can be obtained from PyPI
 
 .. code-block:: console
 
-    pip install cifcomb
+    pip install cifcombo
 
 
 Installation from source
@@ -32,8 +32,8 @@ instead follow the procedures below.
 
 .. code-block:: console
 
-    git clone https://github.com/kousuke-nakano/cifcomb.git
-    cd cifcomb
+    git clone https://github.com/kousuke-nakano/cifcombo.git
+    cd cifcombo
     pip install -e .
 
 Quick use
@@ -46,7 +46,7 @@ You should prepare a CIF data file from your cif files
 
 .. code-block::
 
-    cifcomb -m cif_dir1 cif_dir2 ....
+    cifcombo -m cif_dir1 cif_dir2 ....
 
 The generation process is parallelized using `joblib` library. Nevertheless, it takes a very long time if the specified CIF database is huge (e.g., It takes ~ 2 days for the entire COD/Crystallography Open Database [http://www.crystallography.net/cod/] CIF files with 256 cores of Intel(R) Xeon Phi(TM) CPU 7210 @ 1.30GHz).
 
@@ -59,7 +59,7 @@ You should search a CIF that can be sum of the input compositions from the gener
 
 .. code-block::
 
-    %cifcomb -s CaO TiO2
+    %cifcombo -s CaO TiO2
     1*Ca1 Ti1 O3 = 1*Ca1O1 + 1*Ti1O2, cifid=1000022, SG=Pnma
     ...
 
@@ -70,7 +70,7 @@ You should copy a CIF with an ID in the generated database.
 
 .. code-block::
 
-    cifcomb -g 1000022
+    cifcombo -g 1000022
     # copying 1000022.cif to the current directory.
 
 Decompose an input composition
@@ -80,7 +80,7 @@ You can decompose a target composition with the input compositions
 
 .. code-block::
 
-    %cifcomb -s CaO TiO2 -t CaTiO3
+    %cifcombo -s CaO TiO2 -t CaTiO3
     1*CaTiO3 = 1*CaO + 1*TiO2
 
 
@@ -91,7 +91,7 @@ For additional information, you can use the help command:
 
 .. code-block:: console
 
-    cifcomb -h
+    cifcombo -h
 
 or you can refer to the documentation.
 
@@ -102,7 +102,7 @@ How to release
 Work on the devel or on a new branch
 
 .. code-block:: console
-    
+
     git merge <new branch> devel # if you work on a new branch.
     git push origin devel # A GitHub Action triggers pytests.
 
