@@ -64,6 +64,50 @@ def tqdm_joblib(
         pbar.close()
 
 
+def make_link(src, dst):
+    if not os.path.isdir(dst):
+        print(f"{dst} is not a directory.")
+        raise ValueError
+    if os.path.isfile(src):
+        if os.path.islink(src):
+            os.unlink(src)
+        else:
+            os.remove(src)
+    if os.path.isdir(src):
+        if os.path.islink(src):
+            os.unlink(src)
+        else:
+            shutil.rmtree(src)
+    print(f"making a link from {src} to {dst}")
+    os.symlink(
+        os.path.abspath(dst),
+        os.path.abspath(src),
+        target_is_directory=True,
+    )
+
+
+def copy_dir(src, dst):
+    if not os.path.isdir(src):
+        print(f"{src} is not a directory.")
+        raise ValueError
+    if os.path.isfile(dst):
+        if os.path.islink(dst):
+            os.unlink(dst)
+        else:
+            os.remove(dst)
+    if os.path.isdir(dst):
+        if os.path.islink(dst):
+            os.unlink(dst)
+        else:
+            shutil.rmtree(dst)
+    print(f"copying {src} to {dst}")
+    shutil.copytree(
+        src,
+        dst,
+        dirs_exist_ok=True,
+    )
+
+
 def make_database(cif_dir_list=[], cif_dir_link=True):
     os.makedirs(const.DATA_DIR, exist_ok=True)
     os.makedirs(const.CIF_DIR, exist_ok=True)

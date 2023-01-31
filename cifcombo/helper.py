@@ -10,6 +10,7 @@ import warnings
 from pymatgen.core import Composition
 
 import cifcombo.core as core
+import cifcombo.const as const
 
 warnings.simplefilter("ignore")
 os.environ["PYTHONWARNINGS"] = "ignore::UserWarning"
@@ -20,22 +21,46 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "-m", "--makedatabase", help="-m cifdir1 cifdir2 ...", nargs="*"
+        "-md", "--makedatabase", help="-m cifdir1 cifdir2 ...", nargs="*"
     )
     parser.add_argument(
-        "-link",
-        "--makeciflink",
-        help="make links for the cif dirs (without copy)",
+        "-wc",
+        "--withoutcifcopy",
+        help="make a database without copying the cif dirs (just make symbolic links to them).",
         action="store_true",
     )
     parser.add_argument(
+        "-lc",
+        "--makeciflink",
+        help="-lc cifdir, make a link to the cif dir (without copy)",
+        type=str,
+    )
+    parser.add_argument(
+        "-ld",
+        "--makedatalink",
+        help="-ld datadir, make a link to the data dir (without copy)",
+        type=str,
+    )
+    parser.add_argument(
+        "-cc", "--copycifdir", help="-cc cifdir, copy the cif dir", type=str
+    )
+    parser.add_argument(
+        "-cd",
+        "--copydatadir",
+        help="-cd datadir, copy the data dir",
+        type=str,
+    )
+    parser.add_argument(
         "-s",
-        "--searchdatabase",
-        help="-s composition1 composition2 ...",
+        "--searchcombination",
+        help="-s composition1 composition2 ... (Search for combinations of the given composition from the database. When you specify -s, cifcombo tries to decompose the target composition with the given compositions.)",
         nargs="*",
     )
     parser.add_argument(
-        "-t", "--targetcompsition", help="-t targetcomposition ...", type=str
+        "-t",
+        "--targetcompsition",
+        help="-t targetcomposition (When you specify -s, cifcombo tries to decompose the target composition with the given compositions. When you do not specify -s, cifcombo searches possible decompositions from the database.)",
+        type=str,
     )
     parser.add_argument("-g", "--getcif", help="-g [cifid] ...", nargs="*")
 
@@ -43,10 +68,40 @@ def main():
 
     if args.makedatabase:
         core.make_database(
-            cif_dir_list=args.makedatabase, cif_dir_link=args.makeciflink
+            cif_dir_list=args.makedatabase, cif_dir_link=args.withoutcifcopy
         )
 
-    if args.searchdatabase:
+    if args.makeciflink:
+        src_cif_dir = const.CIF_DIR
+        dst_cif_dir = os.path.abspath(args.makeciflink)
+        core.make_link(
+            src=os.path.relpath(src_cif_dir), dst=os.path.relpath(dst_cif_dir)
+        )
+
+    if args.makedatalink:
+        src_data_dir = const.DATA_DIR
+        dst_data_dir = os.path.abspath(args.makedatalink)
+        core.make_link(
+            src=os.path.relpath(src_data_dir),
+            dst=os.path.relpath(dst_data_dir),
+        )
+
+    if args.copycifdir:
+        src_cif_dir = os.path.abspath(args.copycifdir)
+        dst_cif_dir = const.CIF_DIR
+        core.copy_dir(
+            src=os.path.relpath(src_cif_dir), dst=os.path.relpath(dst_cif_dir)
+        )
+
+    if args.copydatadir:
+        src_data_dir = os.path.abspath(args.copydatadir)
+        dst_data_dir = const.DATA_DIR
+        core.copy_dir(
+            src=os.path.relpath(src_data_dir),
+            dst=os.path.relpath(dst_data_dir),
+        )
+
+    if args.searchcombination:
         compound_list = args.searchdatabase
 
         if args.targetcompsition:
@@ -113,6 +168,10 @@ def main():
                 print("No cif is found in the cif database.")
                 print("If you try to synthesize a new compound,")
                 print("plz. specify the composition with -t option.")
+
+    else:
+        if args.targetcompsition:
+            print(Composition(args.targetcompsition))
 
     if args.getcif:
         cifid_list = args.getcif
