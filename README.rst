@@ -17,7 +17,7 @@ Synthesized compositions search from cif database.
 Installation via PyPI
 ----------------------------------------------------------
 
-[In progress] cifcombo can be obtained from PyPI
+[In progress] cifcombo can be obtained from ``PyPI``
 
 .. code-block:: console
 
@@ -48,9 +48,29 @@ You should prepare a CIF data file from your cif files
 
     cifcombo -m cif_dir1 cif_dir2 ....
 
-The generation process is parallelized using `joblib` library. Nevertheless, it takes a very long time if the specified CIF database is huge (e.g., It takes ~ 2 days for the entire COD/Crystallography Open Database [http://www.crystallography.net/cod/] CIF files with 256 cores of Intel(R) Xeon Phi(TM) CPU 7210 @ 1.30GHz).
+The generation process is parallelized using ``joblib`` library. Nevertheless, it takes a very long time if the specified CIF database is huge (e.g., It takes ~ 2 days for the entire COD/Crystallography Open Database [http://www.crystallography.net/cod/] CIF files with 256 cores of Intel(R) Xeon Phi(TM) CPU 7210 @ 1.30GHz).
 
 If one wants to use a prepared CIF database, plz. contact to the developer Kosuke Nakano [kousuke_1123@icloud.com].
+
+Using a prepared CIF database
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can use CIF database that has been already generated
+
+To copy a prepared the CIF database:
+
+.. code-block::
+
+    %cifcombo -cc cif_data    # A prepared CIF database
+    %cifcombo -cd cif_dir     # The directory containing the CIF files used for generating the CIF database
+
+or to make symbolic links to the CIF database:
+
+.. code-block::
+
+    %cifcombo -lc cif_data    # A prepared CIF database
+    %cifcombo -ld cif_dir     # The directory containing the CIF files used for generating the CIF database
+
 
 Search a CIF file from the generated database
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -83,6 +103,19 @@ You can decompose a target composition with the input compositions
     %cifcombo -s CaO TiO2 -t CaTiO3
     1*CaTiO3 = 1*CaO + 1*TiO2
 
+If you do not specify the input compositions, ``cifcombo`` searches for
+possible decompositions based on the CIF files registered in the CIF
+database. You can also specify the number of decomposition by the option
+-nd (default is 2).
+
+.. code-block::
+
+    %cifcombo -t CaTiO3 -nd 2
+    
+    target composition = Ca1 Ti1 O3
+    The num. possible decomposition = 2
+    1*CaTiO3 = 1*CaO + 1*TiO2
+    ...
 
 Additional information
 ^^^^^^^^^^^^^^^^^^^^^^

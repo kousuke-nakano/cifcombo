@@ -3,6 +3,7 @@
 
 import os
 import numpy as np
+import itertools
 
 import argparse
 import warnings
@@ -59,8 +60,15 @@ def main():
     parser.add_argument(
         "-t",
         "--targetcompsition",
-        help="-t targetcomposition (When you specify -s, cifcombo tries to decompose the target composition with the given compositions. When you do not specify -s, cifcombo searches possible decompositions from the database.)",
+        help="-t targetcomposition (When you specify -s, cifcombo tries to decompose the target composition with the given compositions. When you do not specify -s, cifcombo searches possible decompositions (the default num. = 2, you can specify the number by -nd) from the database.)",
         type=str,
+    )
+    parser.add_argument(
+        "-nd",
+        "--numpossibledecomposition",
+        help="-nd the num. of possible decompositions valid only with -t and without -s",
+        type=int,
+        default=2,
     )
     parser.add_argument("-g", "--getcif", help="-g [cifid] ...", nargs="*")
 
@@ -102,7 +110,7 @@ def main():
         )
 
     if args.searchcombination:
-        compound_list = args.searchdatabase
+        compound_list = args.searchcombination
 
         if args.targetcompsition:
             (
@@ -121,9 +129,14 @@ def main():
                     ]
                 )
 
-                print(
-                    f"{target_nominal_ratio:.0f}*{args.targetcompsition} = {eq}"
-                )
+                if len(input_nominal_ratio_list) > 1:
+                    print(
+                        f"{target_nominal_ratio:.0f}*{args.targetcompsition} = {eq}"
+                    )
+
+                else:
+                    print(f"{eq}")
+
             else:
                 print("No solution is found.")
 
@@ -154,16 +167,25 @@ def main():
                     return_space_group_list,
                 ):
 
-                    eq = " + ".join(
-                        [
-                            f"{input_nominal_ratio_list[i]:.0f}*{str(input_compositions_list[i]).replace(' ', '')}"
-                            for i in range(len(input_compositions_list))
-                        ]
-                    )
+                    if len(input_compositions_list) > 1:
+                        eq = " + ".join(
+                            [
+                                f"{input_nominal_ratio_list[i]:.0f}*{str(input_compositions_list[i]).replace(' ', '')}"
+                                for i in range(len(input_compositions_list))
+                            ]
+                        )
+                        print(
+                            f"{candidate_nominal_ratio:.0f}*{candidate_composition} = {eq}, cifid={cifid}, SG={space_group}"
+                        )
+                    else:
+                        eq = " + ".join(
+                            [
+                                f"{str(input_compositions_list[i]).replace(' ', '')}"
+                                for i in range(len(input_compositions_list))
+                            ]
+                        )
+                        print(f"{eq}, cifid={cifid}, SG={space_group}")
 
-                    print(
-                        f"{candidate_nominal_ratio:.0f}*{candidate_composition} = {eq}, cifid={cifid}, SG={space_group}"
-                    )
             else:
                 print("No cif is found in the cif database.")
                 print("If you try to synthesize a new compound,")
@@ -171,7 +193,94 @@ def main():
 
     else:
         if args.targetcompsition:
-            print(Composition(args.targetcompsition))
+            target_composition = Composition(args.targetcompsition)
+            print(f"target composition = {target_composition}")
+            candidate_el_amt_dict = (
+                target_composition.element_composition.get_el_amt_dict()
+            )
+            unique_element_list = candidate_el_amt_dict.keys()
+            # print(unique_element_list)
+            all_possible_combinations = []
+            for num_c in range(len(unique_element_list)):
+                all_possible_combinations += list(
+                    itertools.combinations(unique_element_list, num_c + 1)
+                )
+
+            # print(all_possible_combinations)
+            print(
+                f"The num. possible decomposition = {args.numpossibledecomposition}"
+            )
+            all_possible_compositions = (
+                itertools.combinations_with_replacement(
+                    all_possible_combinations, args.numpossibledecomposition
+                )
+            )
+            print(
+                "Searching for possible decompositions of the target composition..."
+            )
+
+            print(
+                "It may take a copuple of minites... Plz. be patient ... :-)"
+            )
+
+            # print(list(all_possible_compositions))
+
+            for possible_compositions in all_possible_compositions:
+                element_included_list = list(
+                    set(itertools.chain.from_iterable(possible_compositions))
+                )
+
+                if all(
+                    [
+                        element in element_included_list
+                        for element in unique_element_list
+                    ]
+                ):
+                    # print(f"possible_composition={possible_compositions}")
+                    all_product_ingredients = []
+                    for compositions in possible_compositions:
+                        # print(f"compositions = {list(compositions)}")
+                        (
+                            return_candidate_nominal_ratio_list,
+                            return_candidate_composition_list,
+                            return_input_nominal_ratio_list,
+                            return_input_compositions_list,
+                            return_cifid_list,
+                            return_space_group_list,
+                        ) = core.search_combination(
+                            compounds_list=compositions
+                        )
+
+                        # print(set(return_candidate_composition_list))
+
+                        all_product_ingredients.append(
+                            set(return_candidate_composition_list)
+                        )
+
+                    p = itertools.product(*all_product_ingredients)
+
+                    for input_composition_list in p:
+                        # print(input_composition_list)
+                        (
+                            target_nominal_ratio,
+                            input_nominal_ratio_list,
+                        ) = core.decompose_composition(
+                            target_composition=target_composition,
+                            input_composition_list=input_composition_list,
+                        )
+
+                        if target_nominal_ratio is not np.nan:
+                            eq = " + ".join(
+                                [
+                                    f"{input_nominal_ratio_list[i]:.0f}*{str(input_composition_list[i]).replace(' ', '')}"
+                                    for i in range(len(input_composition_list))
+                                ]
+                            )
+
+                            print(
+                                f"  {target_nominal_ratio:.0f}*{args.targetcompsition} = {eq}"
+                            )
+            print("Done.")
 
     if args.getcif:
         cifid_list = args.getcif
